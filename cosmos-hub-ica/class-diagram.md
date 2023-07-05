@@ -5,7 +5,7 @@ classDiagram
     ICS27 <|-- Codec
     ICS27 <|-- Types
     IcaDao <|-- Icarus
-    IcaDao <|-- Econder
+    IcaDao <|-- Encoder
     ContractGovernor <|-- IcaDao
     ContractGovernor <|-- Electorate
     ContractGovernor <|-- ParamManager
@@ -35,7 +35,7 @@ classDiagram
         +getAddress()
         +getPortId()
     }
-    class Econder{
+    class Encoder{
         +buildDelegateMsg()
         +buildRedelegateMsg()
         +buildUndelegateMsg()
