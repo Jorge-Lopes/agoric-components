@@ -1,3 +1,7 @@
+# Changes made to the original code
+
+## Contract and test files
+
 1. Code directory was not created using the `agoric init` command
     Created an agoric project and moved the code to the new project
 
@@ -165,3 +169,48 @@
     Solution
     Replace the value of the last assertion from 5000000n to 4980000n
     Replace the t(1) with t(4)
+
+## Local-ibc
+
+1. The first issue I noticed was related with the faucet link, `http://55ma08d6b9aht4gtovcih95dps.ingress.edgenet-1.ewr1.aksh.pw/faucet`, which is no longer active. That made me realize that the Akash network used, `edgenet-1`, is also discontinued.
+
+    So the updates made to the makefile and hermes.config was based on this repository:
+    https://github.com/akash-network/net/tree/master
+
+    - Changes made to makefile:
+    ```
+    CHAIN_AKASH=testnet-02
+
+    task/tap-akash-faucet: hermes.config
+        @echo tapping faucet
+        @echo per https://faucet.testnet-02.aksh.pw
+        curl -X POST -d 'address=$(ADDR_AKASH)' https://faucet.testnet-02.aksh.pw
+        mkdir -p task && touch $@
+    ```
+
+    - changes made to hermes.config
+    Note that the IP address for `testnet-02.aksh.pw` is `216.153.52.237` 
+    ```
+    [[chains]]                                                               
+    id = 'testnet-02'
+    rpc_addr = 'http://216.153.52.237:443/'
+    grpc_addr = 'http://216.153.52.237:9090/'
+    websocket_addr = 'ws://216.153.52.237:443//websocket'
+    ```
+
+2. When calling make start, the following error is triggered:
+
+    ```
+    mkdir -p task && touch task/restore-keys
+    tapping faucet
+    per https://faucet.testnet-02.aksh.pw
+    curl -X POST -d 'address=akash1h68l7uqw255w4m2v82rqwsl6p2qmkrg028euar' https://faucet.testnet-02.aksh.pw
+    {"statusCode":415,"code":"FST_ERR_CTP_INVALID_MEDIA_TYPE","error":"Unsupported Media Type","message":"Unsupported Media Type: application/x-www-form-urlencoded"}mkdir -p task && touch task/tap-akash-faucet
+    tapping agoric faucet
+    agoric address agoric12t2yqeg4pdne7w7fadacvp8l8afevdsumhtswr
+    agd --home=../_agstate/keys tx bank send -ojson --keyring-backend=test --gas=auto --gas-adjustment=1.2 --broadcast-mode=block --yes --chain-id=agoric --node=tcp://localhost:26657 provision agoric12t2yqeg4pdne7w7fadacvp8l8afevdsumhtswr 13000000ubld,50000000urun
+    Error: provision.info: key not found
+    Usage:
+    agd tx bank send [from_key_or_address] [to_address] [amount] [flags]
+
+    ```
