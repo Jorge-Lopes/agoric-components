@@ -2,20 +2,25 @@
 
 ## Summary
 
-An Agoric smart contract in hardened JavaScript that interacts with the Akash network to perform a useful function, such as an auto-redeployment of an Akash instance.
+The Akash Lease Mgmt. module aims to automate the continuous monitoring and funding process for an Akash deployment. It verifies the funding status and triggers the funding process when the available funds fall below a specified threshold. The contract utilizes the AkashClient and Pegasus APIs to interact with the Akash blockchain and maintain the required funding level to ensure the deployment remains functional.
 
 ## Details
 
-Akash is an open-source cloud hosting platform that allows users to bid and lease for compute and storage usage. This challenge is to build functionality to allow Akash users to manage their leases more flexibly or with more reliability. The example to renew leases solves a current need for Akash users: their leases can be terminated by their hosting providers, and they may experience downtime.
+The [Akash Network](https://akash.network/) is an open-source decentralized cloud computing platform that allows users to bid and lease computing and storage resources. It uses blockchain technology and a marketplace to enable peer-to-peer resource leasing, providing a cost-efficient and decentralized cloud infrastructure for application deployment.
+To be able to interact with the Akash Network, an [akashClient](https://github.com/simpletrontdip/dapp-akash-controller/blob/main/api/src/akash.js) library was created. The akashClient facilitates deployment management, account balance checks, and depositing uAKT tokens to fund specific deployments.
+
+The Agoric [Pegasus package](https://github.com/Agoric/agoric-sdk/tree/master/packages/pegasus) enables seamless and secure communication and token transfers between different blockchain networks using the [ICS20 standard](https://github.com/cosmos/ibc/blob/main/spec/app/ics-020-fungible-token-transfer/README.md) and [IBC protocol](https://tutorials.cosmos.network/academy/3-ibc/1-what-is-ibc.html). It facilitates the creation and management of pegged fungible tokens, allowing their exchange between local and remote blockchains. Users can create invitations for asset transfers over the network, simplifying cross-chain interactions and enhancing the interoperability and accessibility of assets across various blockchains.
+
+The [AkashController](https://github.com/simpletrontdip/dapp-akash-controller/blob/main/contract/src/contract.js) contract automates the funding process for Akash deployments by monitoring the account balance of the deployed application. The contract implements periodic checks, and if the account balance falls below a specified threshold, the contract automatically triggers the deposit of uAKT tokens to ensure the continuous operation of the application on the Akash Network.
 
 ## Dependencies
 
-There are some previous considerations to have before instantiating this contract.
+There are some previous considerations to have before instantiating the akashController contract.  
 The first one is related to the agoric-sdk version used at the moment of its development. The tag returned by running the command `git describe --tags --always` is `???`, so it is advised to checkout to the same state when exploring this component and test if any major update is required in order to be implemented at the desired agoric-sdk version.
 
 `git checkout ???`
 
-The akashController module relies on the Pegasus contract for IBC transactions and an Akash client to monitor and manage the respective Akash deployment. The first steps that should be addressed is to create a remote peg for uAKT, using the Pegasus method pegRemote. The second step is to boot an akashClient, for this you can use the akash.js bootPlugin function pass your Akash deployment account mnemonic and the Akash network rpcEndpoint as parameters. In return, you will receive a remotable object with the methods detailed on the Contract Facets section.
+The Akash Lease Mgmt. module relies on the Pegasus contract for IBC transactions and an Akash client to monitor and manage the respective Akash deployment. The first step that should be addressed is to create a remote peg for uAKT, using the Pegasus method pegRemote. The second step is to boot an akashClient, for this, you can use the akash.js bootPlugin function and pass your Akash deployment account mnemonic and the Akash network rpcEndpoint as parameters. In return, you will receive a remotable object with the methods detailed in the Contract Facets section.
 Both objects returned, the uAKT peg and the akashClient, will be required for the contract terms.
 
 ```js
@@ -25,8 +30,8 @@ const akashClient = await installUnsafePlugin("./src/akash.js", {
 }).catch((e) => console.error(`${e}`));
 ```
 
-To instantiate the akashController contract, you need to provide the contract installation, the issuerKeywordRecord and lastly the contract terms.
-For the issuerKeywordRecord you need to specify the keyword 'Fund', being the value the issuer of the pegged asset, in this case it is the AKT.
+To instantiate the akashController contract, you need to provide the contract installation, the issuerKeywordRecord and lastly the contract terms.  
+For the issuerKeywordRecord you need to specify the keyword 'Fund', being the value of the issuer of the pegged asset, in this case, it is the uAKT.
 
 ```js
 const issuerKeywordRecord = harden({
@@ -34,9 +39,8 @@ const issuerKeywordRecord = harden({
 });
 ```
 
-Regarding the contract terms, the snippet bellow identify all the required attributes that should be included on the terms. For the timeAuthority, you can pass the chainTimerService retrieved from the home object. Regarding the Pegasus attribute, you can use the home.agoricNames to lookup for the Pegasus instance, and from there retrieve the contract publicFacet. The deploymentId refers to the Akash deployment sequence identifier (DSEQ).
-
-- The brands: ToDo
+Regarding the contract terms, the snippet below lists all the required attributes that should be included in the terms.  
+For the timeAuthority, you can pass the chainTimerService retrieved from the home object. Regarding the Pegasus attribute, you can use the home.agoricNames to lookup for the Pegasus instance, and from there retrieve the contract publicFacet. The deploymentId refers to the Akash deployment sequence identifier (DSEQ).
 
 ```js
 const {
@@ -55,8 +59,7 @@ const {
 
 ## Contract Facets
 
-As mentioned on the dependencies section, an akashClient needs to be provided on the contract terms. The akash-client is a remotable object which has a set of methods required to interact with the Akash deployment.
-within the start method of the bootPlugin object
+As mentioned in the Dependencies section, an akashClient needs to be provided on the contract terms. The start method of the bootPlugin object returns an akash-client, which is a remotable object that has a set of methods required to interact with the Akash deployment. Those methods are listed bellow, and will be described in more detail in the Functionalities section.
 
 ```js
 return Far('akash-client', {
@@ -69,7 +72,7 @@ return Far('akash-client', {
     });
 ```
 
-The akashController contract returns a creatorInvitation at the moment of its instantiation. The creatorInvitation is a zoe invitation that receives as offerHandler the watchAkashDeployment function.
+The akashController contract returns a creatorInvitation at the moment of its instantiation. The creatorInvitation is a zoe invitation that receives as offerHandler the watchAkashDeployment function. The akashController functions will be described as well on the next section.
 
 ```js
 const creatorInvitation = zcf.makeInvitation(
@@ -88,10 +91,9 @@ return harden({
 
 #### initialize
 
-The purpose of the initialize method is to ensure that the Akash client is properly set up before any subsequent method calls are made. It initializes the Akash instance and retrieves the user's address, which is required for various operations.  
-It first checks if the Akash variable is already set, indicating that the client has already been initialized. If so, it logs a warning message and returns early to avoid reinitialization.  
-If the client has not been initialized, it retrieves the mnemonic and RPC endpoint from the opts object. If not provided, it falls back to the default values specified at the beginning of the code.  
-It calls the initClient function, passing the mnemonic and RPC endpoint as arguments. The returned Akash instance and address are assigned to the respective variables.
+The purpose of the initialize method is to ensure that the Akash client is properly set up before any subsequent method calls are made. It initializes the Akash instance and retrieves the account's address, which is required for various operations.  
+It first checks if the Akash variable is already set, indicating that the client has already been initialized. If so, it logs a warning message and returns early to avoid re-initialization. If the client has not been initialized, it retrieves the mnemonic and RPC endpoint from the opts object. If not provided, it falls back to the default values specified at the beginning of the code. Then, it calls the initClient function, passing the mnemonic and RPC endpoint as parameters.  
+The returned Akash instance and address are assigned to the respective variables.
 
 ```js
 const initialize = async () => {
@@ -107,7 +109,7 @@ const initialize = async () => {
 };
 ```
 
-The initClient function initializes the Akash client by creating an instance of the DirectSecp256k1HdWallet using the provided mnemonic and connects to the Akash network using the provided rpcEndpoint. It retrieves the address associated with the mnemonic and returns an object containing the Akash instance and the address.
+The initClient function, called within the initialize method, initiates the Akash client by creating an instance of a DirectSecp256k1HdWallet using the provided mnemonic and connects to the Akash network using the provided rpcEndpoint. It retrieves the address associated with the mnemonic and returns an object containing the Akash instance and the address.
 
 ```js
 const initClient = async (mnemonic, rpcEndpoint) => {
@@ -173,7 +175,7 @@ async getDeploymentDetail(dseq) {
 
 #### getDeploymentFund
 
-The getDeploymentFund method retrieves the funding balance of a specific deployment associated with the Akash client. It takes a single parameter dseq, and relies on the initialized Akash instance and the getDeploymentDetail method to query the deployment funding balance.
+The getDeploymentFund method retrieves the funding balance of a specific deployment associated with the Akash client. It takes only dseq as a parameter, and relies on the initialized Akash instance and the getDeploymentDetail method to query the deployment funding balance.
 The method first calls the getDeploymentDetail method internally, passing the dseq parameter, to retrieve the detailed information of the deployment.
 Once the deployment detail is obtained, the method accesses the escrowAccount.balance property of the detail to retrieve the funding balance.
 
@@ -242,9 +244,8 @@ const startWatchingDeployment = async () => {
 
 #### registerNextWakeupCheck
 
-The purpose of the registerNextWakeupCheck function is to calculate the next wake-up time and register a wake-up callback for the specified time, ensuring that the monitoring and funding cycles for the Akash deployment occur at the desired intervals.  
-The function begins by incrementing the count variable, which keeps track of the number of monitoring cycles that have occurred. If the value of count exceeds the limit, indicating that the maximum number of checks has been reached, the function logs a message and exits the monitoring process. Otherwise, it retrieves the current timestamp from the timeAuthority.  
-Then it calculates the next wake-up time, checkAfter, and sets the wake-up callback. The callback is defined as a remotable object with a wake function that triggers the next monitoring and funding cycle.  
+The purpose of the registerNextWakeupCheck function is to calculate the next wake-up time and register a wake-up callback for that specific time, ensuring that the monitoring and funding cycles for the Akash deployment occur at the desired intervals.  
+The function begins by incrementing the count variable, which keeps track of the number of monitoring cycles that have occurred. If the value of count exceeds the limit, indicating that the maximum number of checks has been reached, the function logs a message and exits the monitoring process. Otherwise, it retrieves the current timestamp from the timeAuthority, and then it calculates the next wake-up time, checkAfter, and sets the wake-up callback. The callback is defined as a remotable object with a wake function that triggers the next monitoring and funding cycle.  
 If an error occurs during the registration process, it is caught and logged.
 
 ```js
@@ -282,9 +283,8 @@ const registerNextWakeupCheck = async () => {
 
 #### checkAndFund
 
-The checkAndFund function monitors the funding status of the Akash deployment and triggers the funding process when the available funds fall below the specified threshold. This helps maintain the required funding level for the deployment's operation and ensures its continued functionality.  
-First, the checkAndFund queries the current deployment balance using akashClient's getDeploymentFund method. The balance is represented as a DecCoin object, containing the amount and denomination. The function extracts the extract the actual amount from the balance.  
-Next, it compares the amount against the predefined minimalFundThreshold. If it is below the threshold, it proceeds with the funding process by calling fundAkashAccount. If the amount meets or exceeds the threshold, it indicates sufficient funds are available, and the function moves to the next funding cycle without executing the funding process.
+The checkAndFund function monitors the funding status of the Akash deployment and triggers the funding process when the available funds fall below the specified threshold. This helps to maintain the required funding level for the deployment's operation and ensures its continued functionality.  
+First, this function queries the current deployment balance using akashClient's getDeploymentFund method. The balance is represented as a DecCoin object, containing the amount and denomination. Next, it compares the balance amount against the predefined minimalFundThreshold. If it is below the threshold, it proceeds with the funding process by calling fundAkashAccount. If the amount meets or exceeds the threshold, it indicates sufficient funds are available, and the function moves to the next funding cycle without executing the funding process.
 
 ```js
 const checkAndFund = async () => {
@@ -303,16 +303,10 @@ const checkAndFund = async () => {
 
 #### fundAkashAccount
 
-The fundAkashAccount function ensures that the Akash account associated with the deployment is funded with the required amount.
-
-A transferInvitation is created using the makeInvitationToTransfer method of the Pegasus publicFacet. This invitation acts as a request for the Pegasus contract to transfer funds to the specified Akash account. It specifies the aktPeg (pegged representation of AKT) and the target akashAddr (Akash account address) as parameters.
-
-The function uses the offerTo function to make an offer from the Pegasus contract to the transfer invitation. It provides the necessary parameters, including the zcf (Zoe contract facet), the transferInvitation, the keyword mapping, and the offer proposal.
-
+The fundAkashAccount function is used to fund the Akash account. It first obtains the Akash address using the akashClient.getAddress() function. Then, it creates a transfer invitation using the pegasus makeInvitationToTransfer method, which allows it to transfer tokens from the Pegasus contract to the Akash account. The amount to be transferred is specified as aktDepositAmount, which is a predetermined value in the contract's terms.  
+The fundAkashAccount uses the offerTo function, and provides the necessary parameters, including the zcf (Zoe contract facet), the transferInvitation, the keyword mapping, the offer proposal and the from and to Seat.  
 To ensure that the deposit is completed before proceeding further, the function calls the waitForPendingDeposit function. Once the deposit is completed, the function logs a message indicating that the transfer has been completed and checks the remaining allocation of the Transfer keyword in the user seat. If the remaining allocation is empty, it signifies that the transfer was successful. In this case, the function proceeds to execute the depositAkashDeployment function, which finalizes the deposit of the Akash deployment.
 If an error occurs during the offer process or while waiting for the pending deposit, the function catches the error, logs an error message, and handles any necessary error handling or termination of the monitoring process.
-
-ToDo: improve this description
 
 ```js
 const fundAkashAccount = async () => {
@@ -347,7 +341,7 @@ const fundAkashAccount = async () => {
 
     if (transferOk) {
       console.log("IBC transfer completed");
-      // XXX should we recheck the ballance?
+      // XXX should we recheck the balance?
       await depositAkashDeployment();
     } else {
       console.log("IBC transfer failed");
@@ -387,7 +381,7 @@ const depositAkashDeployment = async () => {
 
 #### waitForPendingDeposit
 
-After waiting for the pending deposit, which represents the completion of the deposit process, the waitForPendingDeposit function has two possible outcomes. If the deposit process is successful and the promise resolves, the function completes without any further action. If an error occurs during the deposit process and the promise is rejected, the function logs an error message and calls the exit() method on the controllerSeat. This action terminates the monitoring process and exits the contract.  
+After waiting for the pending deposit, which represents the completion of the deposit process, the waitForPendingDeposit function, called in the fundAkashAccount function described above, has two possible outcomes. If the deposit process is successful and the promise resolves, the function completes without any further action. If an error occurs during the deposit process and the promise is rejected, the function logs an error message and calls the exit method on the controllerSeat. This action terminates the monitoring process and exits the contract.  
 By awaiting the completion of the deposit, it guarantees that subsequent actions related to the deposit are executed only when the funds are confirmed on the blockchain.
 
 ```js
@@ -408,8 +402,7 @@ const waitForPendingDeposit = async () => {
 **Usage and Integration Guide**
 
 To help you effectively utilize and integrate the akashController component into your projects, we offer a comprehensive guide that walks you through the necessary steps for setting up the testing environment and running a demonstration scenario. This guide will enable you to better understand the code's functionality, make necessary configurations, and seamlessly integrate it into your existing systems.
-[Demo]( ToDo )
-
+[Demo](ToDo)
 
 ## Start Today
 
