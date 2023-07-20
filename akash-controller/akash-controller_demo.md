@@ -2,8 +2,7 @@
 
 - [agoric-sdk](https://docs.agoric.com/guides/getting-started/)
   - checkout to the agoric-sdk `community-dev` branch
-- [akash-controller-demo repository](ToDo)
-  - clone this repository
+- [akash-controller-demo repository](https://github.com/Jorge-Lopes/akash-controller-demo)
 - [Hermes](https://hermes.informal.systems/quick-start/installation.html)
 - [jq](https://stedolan.github.io/jq/download/)
 
@@ -114,6 +113,89 @@ At the time of writing this(2023-07-21), there are a few adjustments to `agoric-
 
    }
    ```
+
+## Hermes Config
+
+Copy and paste the configuration below to your `$HOME/.hermes/config.toml` file.
+
+```text
+[global]
+log_level = 'info'
+
+[mode]
+
+[mode.clients]
+enabled = true
+refresh = true
+misbehaviour = true
+
+[mode.connections]
+enabled = true
+
+[mode.channels]
+enabled = true
+
+[mode.packets]
+enabled = true
+clear_interval = 100
+clear_on_start = true
+tx_confirmation = true
+
+[telemetry]
+enabled = true
+host = '127.0.0.1'
+port = 3001
+
+[[chains]]
+id = 'agoriclocal'
+rpc_addr = 'http://localhost:26657'
+grpc_addr = 'http://localhost:9090'
+websocket_addr = 'ws://localhost:26657/websocket'
+rpc_timeout = '15s'
+account_prefix = 'agoric1'
+key_name = 'ag-solo'
+store_prefix = 'ibc'
+gas_price = { price = 0.001, denom = 'ubld' }
+gas_multiplier = 1.1
+default_gas = 1000000
+max_gas = 10000000
+max_msg_num = 30
+max_tx_size = 2097152
+clock_drift = '5s'
+max_block_time = '30s'
+trusting_period = '14days'
+trust_threshold = { numerator = '2', denominator = '3' }
+
+# [chains.packet_filter]
+# policy = 'allow'
+# list = [
+#   ['ica*', '*'],
+#   ['transfer', 'channel-0'],
+# ]
+
+[[chains]]
+id = 'testnet-02'
+rpc_addr = 'http://216.153.52.237:26657'
+grpc_addr = 'http://216.153.52.237:9090'
+websocket_addr = 'ws://216.153.52.237:26657/websocket'
+rpc_timeout = '15s'
+account_prefix = 'akash'
+key_name = 'myWallet'
+store_prefix = 'ibc'
+max_gas = 3000000
+gas_price = { price = 0.025, denom = 'uakt' }
+gas_multiplier = 1.1
+clock_drift = '5s'
+trusting_period = '14days'
+trust_threshold = { numerator = '2', denominator = '3' }
+
+# [chains.packet_filter]
+# policy = 'allow'
+# list = [
+#   ['ica*', '*'],
+#   ['transfer', 'channel-0'],
+# ]
+```
 
 ## Prepare Agoric Chain
 
@@ -509,7 +591,7 @@ At the time of writing this(2023-07-21), there are a few adjustments to `agoric-
 2. Execute a transaction to send uAKT from Akash to Agoric
 
    ```shell
-   hermes tx ft-transfer --timeout-seconds 1000 --dst-chain agoriclocal --src-chain testnet-02 --src-port transfer --src-channel channel-3 --amount 10000000 --denom uakt
+   hermes tx ft-transfer --timeout-seconds 1000 --dst-chain agoriclocal --src-chain testnet-02 --src-port transfer --src-channel channel-1 --amount 10000000 --denom uakt
    ```
 
 3. Send uAKT from Agoric to Akash (optional)
@@ -525,38 +607,38 @@ At the time of writing this(2023-07-21), there are a few adjustments to `agoric-
 ## Update Demo with Akash account information
 
 1. On the `akash-controller-demo/api/deploy-config.js` file, update the following attributes:
-    - akash: address;
-    - akashAccount: name;
-    - akashAccount: mnemonic;
-    - akashAccount: dseq.  
 
+   - akash: address;
+   - akashAccount: name;
+   - akashAccount: mnemonic;
+   - akashAccount: dseq.
 
    ```js
-    export default {
-        agoric: {
-            channel: 'channel-0',
-            localPegId: 'peg-channel-0-IST',
-        },
-        akash: {
-            address: 'akash1jzrs8lsxhfj97tl958cthvr66gdn5hukeamd7d',
-            remoteAsset: {
-            denom: 'uakt',
-            assetKind: 'nat',
-            displayInfo: {
-                decimalPlaces: 6,
-            },
-            keyword: 'Akash',
-            pegId: 'peg-channel-0-Akash',
-            },
-        },
-        akashAccount: {
-            name: 'myWallet',
-            mnemonic:
-            'vibrant scorpion faint industry lobster kingdom common salad birth panic crazy indoor laptop inherit busy damage scrap success aware grief maid odor risk wine',
-            dseq: '520480',
-            rpcEndpoint: 'http://rpc.testnet-02.aksh.pw:26657',
-        },
-    };
+   export default {
+     agoric: {
+       channel: "channel-0",
+       localPegId: "peg-channel-0-IST",
+     },
+     akash: {
+       address: "akash1jzrs8lsxhfj97tl958cthvr66gdn5hukeamd7d",
+       remoteAsset: {
+         denom: "uakt",
+         assetKind: "nat",
+         displayInfo: {
+           decimalPlaces: 6,
+         },
+         keyword: "Akash",
+         pegId: "peg-channel-0-Akash",
+       },
+     },
+     akashAccount: {
+       name: "myWallet",
+       mnemonic:
+         "vibrant scorpion faint industry lobster kingdom common salad birth panic crazy indoor laptop inherit busy damage scrap success aware grief maid odor risk wine",
+       dseq: "520480",
+       rpcEndpoint: "http://rpc.testnet-02.aksh.pw:26657",
+     },
+   };
    ```
 
 # Run the Demo
@@ -580,6 +662,7 @@ At the time of writing this(2023-07-21), there are a few adjustments to `agoric-
    agoric deploy api/deploy-onchain-agent.js --allow-unsafe-plugins
    ```
 
-3. Observe the balances updates on the Akash account and the Agoric wallet
+3. Observe the contract behavior
 
-ToDo: see the best approach for this step
+   Use contract logs being printed on the chain console to observe the contract behavior.
+   Observe the balances updates on the Akash account and on the Agoric wallet as well.
