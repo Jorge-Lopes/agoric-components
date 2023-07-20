@@ -12,6 +12,9 @@ This chapter will set the necessaries modules for Hermes relayer, and the Agoric
 The steps here described were based on this Pegasus [Local IBC Demo](https://github.com/anilhelvaci/agoric-sdk/blob/ibc-example-scripts/packages/pegasus/localDemo/localDemo.md) and this guide [Akash CLI for GPU Testnet](https://docs.akash.network/testnet/gpu-testnet-client-instructions/detailed-steps).  
 We advise you to explore both of these implementations to have more detailed descriptions of each step followed next.
 
+<mark>Important:</mark> the current implementation of the akashClient plugin is not working properly, so we advise to consider this when following this demo. When we start the akashController contract instance, the akashClient will not return any response to the contract requests.  
+More details can be found [here](https://github.com/anilhelvaci/dapp-akash-controller/blob/main/README.md).
+
 ## Update the Pegasus package
 
 At the time of writing this(2023-07-21), there are a few adjustments to `agoric-sdk` that needs to be done. Specifically to `agoric-sdk/packages/pegasus/src/proposals/core-proposal.js` and `agoric-sdk/packages/vats/decentral-devnet-config.json`.

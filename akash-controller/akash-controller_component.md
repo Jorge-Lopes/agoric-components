@@ -30,6 +30,8 @@ const akashClient = await installUnsafePlugin("./src/akash.js", {
 }).catch((e) => console.error(`${e}`));
 ```
 
+<mark>Important:</mark> the current implementation of the akashClient plugin is not working properly, so we advise to consider this when trying to implement this component into your applications. More details can be found [here](https://github.com/anilhelvaci/dapp-akash-controller/blob/main/README.md).
+
 To instantiate the akashController contract, you need to provide the contract installation, the issuerKeywordRecord and lastly the contract terms.  
 For the issuerKeywordRecord you need to specify the keyword 'Fund', being the value of the issuer of the pegged asset, in this case, it is the uAKT.
 
