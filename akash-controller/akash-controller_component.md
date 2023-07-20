@@ -404,7 +404,7 @@ const waitForPendingDeposit = async () => {
 **Usage and Integration Guide**
 
 To help you effectively utilize and integrate the akashController component into your projects, we offer a comprehensive guide that walks you through the necessary steps for setting up the testing environment and running a demonstration scenario. This guide will enable you to better understand the code's functionality, make necessary configurations, and seamlessly integrate it into your existing systems.
-[Demo](ToDo)
+[Demo](https://github.com/Jorge-Lopes/agoric-components/blob/main/akash-controller/akash-controller_demo.md)
 
 
 ## Start Today
