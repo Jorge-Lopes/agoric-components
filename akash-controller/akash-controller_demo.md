@@ -8,16 +8,16 @@
 
 # Setup test environment
 
-This chapter will set the necessaries modules for Hermes relayer, and the Agoric and Akash networks.  
-The steps here described were based on this Pegasus [Local IBC Demo](https://github.com/anilhelvaci/agoric-sdk/blob/ibc-example-scripts/packages/pegasus/localDemo/localDemo.md) and this guide [Akash CLI for GPU Testnet](https://docs.akash.network/testnet/gpu-testnet-client-instructions/detailed-steps).  
+This chapter will set the necessaries modules for Hermes relayer, the Agoric and the Akash networks.  
+The steps here described were based on this Pegasus [Local IBC Demo](https://github.com/anilhelvaci/agoric-sdk/blob/ibc-example-scripts/packages/pegasus/localDemo/localDemo.md) and this guide for [Akash CLI for GPU Testnet](https://docs.akash.network/testnet/gpu-testnet-client-instructions/detailed-steps).  
 We advise you to explore both of these implementations to have more detailed descriptions of each step followed next.
 
-<mark>Important:</mark> the current implementation of the akashClient plugin is not working properly, so we advise to consider this when following this demo. When we start the akashController contract instance, the akashClient will not return any response to the contract requests.  
+<mark>Important:</mark> the current implementation of the akashClient plugin is not working properly, so we advise to consider this when following the demo. When we start the akashController contract instance, the akashClient will not return any response to the contract requests.  
 More details can be found [here](https://github.com/anilhelvaci/dapp-akash-controller/blob/main/README.md).
 
 ## Update the Pegasus package
 
-At the time of writing this(2023-07-21), there are a few adjustments to `agoric-sdk` that needs to be done. Specifically to `agoric-sdk/packages/pegasus/src/proposals/core-proposal.js` and `agoric-sdk/packages/vats/decentral-devnet-config.json`.
+At the time of writing this (2023-07-21), there are a few adjustments to `agoric-sdk` that needs to be done. Specifically to `agoric-sdk/packages/pegasus/src/proposals/core-proposal.js` and `agoric-sdk/packages/vats/decentral-devnet-config.json`.
 
 1. Add the code below, `publishConnections`, at the end of `core-proposal.js`.
 
@@ -650,7 +650,7 @@ trust_threshold = { numerator = '2', denominator = '3' }
 
 1. Run the `deploy.js` script.
 
-   This script takes the `akashController` contract code, installs it on Zoe, and makes the installation available on the newly created `installationConstants.js` file.
+   This script takes the `akashController` contract code, installs it on Zoe, and makes the installation board ID available on the newly created `installationConstants.js` file.
 
    ```shell
    cd akash-controller-demo
@@ -659,7 +659,10 @@ trust_threshold = { numerator = '2', denominator = '3' }
 
 2. Run the `deploy-onchain-agent.js` script.
 
-   This script will initiate the Akash client using the
+   This script initializes and configures the required components, such as the Akash client, the Pegasus contract, and relevant assets and issuers.  
+   It then starts the akashController contract instance and exercises the creatorInvitation by sending an offer with the specified amount of AKT to fund the contract.   
+   The script observes the contract's execution and waits for the result and payout, ensuring that the contract deployment is successfully funded and executed on the Akash network.  
+   Note that it is required to pass the flag `--allow-unsafe-plugins` 
 
    ```shell
    agoric deploy api/deploy-onchain-agent.js --allow-unsafe-plugins
