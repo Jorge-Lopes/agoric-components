@@ -16,9 +16,9 @@ The [AkashController](https://github.com/simpletrontdip/dapp-akash-controller/bl
 ## Dependencies
 
 There are some previous considerations to have before instantiating the akashController contract.  
-The first one is related to the agoric-sdk version used at the moment of its development. The tag returned by running the command `git describe --tags --always` is `???`, so it is advised to checkout to the same state when exploring this component and test if any major update is required in order to be implemented at the desired agoric-sdk version.
+The first one is related to the agoric-sdk version used at the moment of its development. The tag returned by running the command `git describe --tags --always` is `agoric-upgrade-8-524-gf4143fe13`, so it is advised to checkout to the same state when exploring this component and test if any major update is required in order to be implemented at the desired agoric-sdk version.
 
-`git checkout ???`
+`git checkout f4143fe13363a763e37f163225f4684028786663`
 
 The Akash Lease Mgmt. module relies on the Pegasus contract for IBC transactions and an Akash client to monitor and manage the respective Akash deployment. The first step that should be addressed is to create a remote peg for uAKT, using the Pegasus method pegRemote. The second step is to boot an akashClient, for this, you can use the akash.js bootPlugin function and pass your Akash deployment account mnemonic and the Akash network rpcEndpoint as parameters. In return, you will receive a remotable object with the methods detailed in the Contract Facets section.
 Both objects returned, the uAKT peg and the akashClient, will be required for the contract terms.
