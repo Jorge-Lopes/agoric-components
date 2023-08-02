@@ -95,3 +95,81 @@ interchain_security.ccv.provider.v1.Query
 router.v1.Query
 tendermint.liquidity.v1beta1.Query
 ```
+
+## Issue ibcport
+
+I dont think the ibcport is retuning on either REPL or script
+```shell
+    E(home.ibcport[0]).getLocalAddress()
+    history[96]
+    Promise.reject("TypeError: Cannot deliver \"getLocalAddress\" to target; typeof target is \"undefined\"")
+```
+
+```shell
+E(home.ibcport).connect(     `/ibc-hop/connection-0/ibc-port/icahost/ordered/{\"version\":\"ics27-1\",\"controllerConnectionId\":\"connection-0\",\"hostConnectionId\":\"connection-2563\",\"address\":\"\",\"encoding\":\"proto3\",\"txType\":\"sdk_multi_msg\"}`,     history[87],   );
+```
+unresolved Promise
+
+```js
+    await E(ibcport[0])
+```
+
+
+```text
+jorgelopes@Jorges-MBP contract % agoric deploy deploy-createICAAccount.js
+
+    Open CapTP connection to ws://127.0.0.1:8000/private/captp...o
+    agoric: deploy: running /Users/jorgelopes/Documents/GitHub/Agoric/ibc/cosmos-ica-demo/contract/deploy-createICAAccount.js
+    agoric: deploy: Deploy script will run with Node.js ESM
+    Contract instance started
+    createICAAccount started
+    agoric: (Error#1)
+    Error#1: Cannot pass non-promise thenables
+
+    at Array.every (<anonymous>)
+    at Array.every (<anonymous>)
+
+```
+
+## Issue createICAAccount sendICATxPacket
+
+unresolved Promise
+
+JSON.stringify({
+    version: 'ics27-1',
+    controllerConnectionId: 'connection-0',
+    hostConnectionId: 'connection-2588',
+    address: '',
+    encoding: 'proto3',
+    txType: 'sdk_multi_msg',
+  });
+
+
+E(history[13]).connect( `/ibc-hop/connection-0/ibc-port/icahost/ordered/{\"version\":\"ics27-1\",\"controllerConnectionId\":\"connection-0\",\"hostConnectionId\":\"connection-2595\",\"address\":\"\",\"encoding\":\"proto3\",\"txType\":\"sdk_multi_msg\"}`,
+    history[5],
+  );
+
+
+
+   E(publicFacet).sendICATxPacket(
+      [
+      {
+         typeUrl: '/cosmos.bank.v1beta1.MsgSend',
+         data: 'Ci1jb3Ntb3Mxc2RrNWt4bWplajh5cXRjcDI5bXVyaDB4eGpsOTBqN2gzNHM2dGUSLWNvc21vczE0eTBtajlqMmw5ODJka2tsOGo5eHdzOXY1dnMzNXU4dXRqODM4NhoPCgV1YXRvbRIGNDUwMDAw',
+      },
+      ],
+      history[11],
+   )
+
+
+## issue
+
+When starting hermes without creating a new connection
+
+
+
+
+
+   home.ibcport
+
+   port = home.ibcport[0]

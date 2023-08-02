@@ -16,6 +16,7 @@ The process involves several steps:
 ## Prerequisites
 
 - Follow the [installing the Agoric SDK](https://docs.agoric.com/guides/getting-started/) guide to install the Agoric Software Development Kit (SDK);
+   - Important: instead of using the community-dev branch, you need to check out to [mainnet1B-rc3](https://github.com/Agoric/agoric-sdk/releases/tag/mainnet1B-rc3)
 - Clone the [Interchain Accounts' repository](https://github.com/pitalco/interaccounts) and run `agoric install` in the project directory;
 - Follow the [installing Hermes](https://hermes.informal.systems/quick-start/installation.html) guide to install the Hermes relayer and Gaia;
 - Download [jq](https://stedolan.github.io/jq/download/).
@@ -88,6 +89,13 @@ The process involves several steps:
    trusting_period = '1days'
    trust_threshold = { numerator = '2', denominator = '3' }
    ```
+
+## Agoric-sdk configuration
+
+   1. Update the keeper.go and expected_keepers.go files on the agoric-sdk repository
+
+   Currently, there is an issue when trying to create a new connection to a remote Port, one of the necessary actions on  **Deploy contract and execute ICA transactions** section.  
+   It is expected that this issue will be fixed, but in the meanwhile you need to follow [this instructions](https://github.com/Agoric/agoric-sdk/pull/8127) and make the suggested updates on the files changed to the agoric-sdk, more specifically to the golang/cosmos/x/vibc/keeper/keeper.go and golang/cosmos/x/vibc/types/expected_keepers.go.
 
 ## Prepare Agoric Chain
 
@@ -341,90 +349,101 @@ The process involves several steps:
    - Follow the approach `A` if you wish to use deploy scripts;
    - Follow the approach `B` if you wish to use agoric REPL;
 
+   Note: on both approaches you need to update `rawMsg fromAddress` with the `cosmoswallet` address and the `rawMsg toAddress` with the `receivercosmoswallet` address. As well as the `controllerConnectionId` and `hostConnectionId`.
+
 ### Script (approach A)
 
 1. Copy this deploy script to the interaccounts project
 
    Create a new deploy script in a directory of your preference (e.g. /interaccounts/contract/deploy/) and paste the following code.
 
-   Note: update `rawMsg fromAddress` with the `cosmoswallet` address and the `rawMsg toAddress` with the `receivercosmoswallet` address. As well as the `controllerConnectionId` and `hostConnectionId`.
-
    ```js
-   import "@agoric/zoe/exported.js";
-   import { E, Far } from "@endo/far";
-   import { MsgSend } from "cosmjs-types/cosmos/bank/v1beta1/tx.js";
-   import { encodeBase64 } from "@endo/base64";
-   import installationConstants from "../ui/public/conf/installationConstants.js";
+   import '@agoric/zoe/exported.js';
+   import { E, Far } from '@endo/far';
+   import { MsgSend } from 'cosmjs-types/cosmos/bank/v1beta1/tx.js';
+   import { encodeBase64 } from '@endo/base64';
+   import installationConstants from '../ui/public/conf/installationConstants.js';
 
-   const createSendICA = async (homePromise) => {
-     const home = await homePromise;
+   const createICASendPacket = async (homePromise) => {
+   const home = await homePromise;
+   const { board, zoe, ibcport } = home;
 
-     const { wallet, board, zoe, ibcport: untypedPorts } = home;
+   const { INSTALLATION_BOARD_ID } = installationConstants;
+   const installation = await E(board).getValue(INSTALLATION_BOARD_ID);
+   const { publicFacet } = await E(zoe).startInstance(installation);
 
-     const { INSTALLATION_BOARD_ID } = installationConstants;
-     const installation = await E(board).getValue(INSTALLATION_BOARD_ID);
-     const { publicFacet } = await E(zoe).startInstance(installation);
+   assert(publicFacet, 'publicFacet must not be null');
 
-     assert(publicFacet, "publicFacet must not be null");
-     console.log("Contract instance started");
+   console.log('Contract instance started');
 
-     /** @type {Port[]} */
-     const ibcport = untypedPorts;
-     const port = E(ibcport[0]);
+   const portArray = await ibcport;
+   const port = portArray[2];
 
-     const connectionHandler = Far("handler", {
-       infoMessage: (...args) => {
+   const address = await E(port).getLocalAddress();
+   assert(address, '/ibc-port/icacontroller-1', 'Invalid listening port')
+
+   const connectionHandler = Far('handler', {
+      infoMessage: (...args) => {
          console.log(...args);
-       },
-       onReceive: (c, p) => {
-         console.log("received packet: ", p);
-       },
-       onOpen: (c) => {
-         console.log("opened");
-       },
-     });
+      },
+      onReceive: (c, p) => {
+         console.log('received packet: ', p);
+      },
+      onOpen: (c) => {
+         console.log('opened');
+      },
+   });
 
-     const controllerConnectionId = "connection-0";
-     const hostConnectionId = "connection-2563";
+   const controllerConnectionId = 'connection-0';
+   const hostConnectionId = 'connection-2563';
 
-     console.log("createICAAccount started");
-     const connection = await E(publicFacet).createICAAccount(
-       port,
-       connectionHandler,
-       controllerConnectionId,
-       hostConnectionId
-     );
+   const connection = await E(publicFacet).createICAAccount(
+      port,
+      connectionHandler,
+      controllerConnectionId,
+      hostConnectionId,
+   );
 
-     console.log("createICAAccount finished");
+   console.log('Connection opened');
 
-     const rawMsg = {
-       amount: [{ denom: "uatom", amount: "450000" }],
-       fromAddress: "cosmos1sdk5kxmjej8yqtcp29murh0xxjl90j7h34s6te",
-       toAddress: "cosmos14y0mj9j2l982dkkl8j9xws9v5vs35u8utj8386",
-     };
-     const msgType = MsgSend.fromPartial(rawMsg);
-
-     const msgBytes = MsgSend.encode(msgType).finish();
-
-     const bytesBase64 = encodeBase64(msgBytes);
-
-     const res = await E(publicFacet).sendICATxPacket(
-       [
-         {
-           typeUrl: "/cosmos.bank.v1beta1.MsgSend",
-           data: bytesBase64,
-         },
-       ],
-       connection
-     );
-
-     console.log(res);
-     console.log("ICA established");
+   const rawMsg = {
+      amount: [{ denom: 'uatom', amount: '450000' }],
+      fromAddress: 'cosmos1sdk5kxmjej8yqtcp29murh0xxjl90j7h34s6te',
+      toAddress: 'cosmos14y0mj9j2l982dkkl8j9xws9v5vs35u8utj8386',
    };
-   export default createSendICA;
+   const msgType = MsgSend.fromPartial(rawMsg);
+
+   const msgBytes = MsgSend.encode(msgType).finish();
+
+   const bytesBase64 = encodeBase64(msgBytes);
+
+   const akn = await E(publicFacet).sendICATxPacket(
+      [
+         {
+         typeUrl: '/cosmos.bank.v1beta1.MsgSend',
+         data: bytesBase64,
+         },
+      ],
+      connection,
+   );
+
+   console.log(akn);
+
+   console.log('Transaction concluded');
+   };
+   export default createICASendPacket;
+
    ```
 
-2. Execute the script
+2. Update package.json
+
+   On the project root, add the following line to the package.json file
+
+   ```json
+   "type": "module",
+   ```
+
+3. Execute the script
 
    ```shell
    cd ~/interaccounts/<script directory>
@@ -446,15 +465,21 @@ The process involves several steps:
 2. Get the contract publicFacet
 
    ```shell
-   publicFacet = history[2].publicFacet
+   publicFacet = history[1].publicFacet
    ```
 
 3. Get an IBC listening port
 
+   Identify the home.ibcport that has the icacontroller prefix
+   ```shell
+   home.ibcport.then(ps => Promise.all(ps.map(p => E(p).getLocalAddress())))
+   ```
+   
+   Replace the position with the number of the icacontroller prefix above, most likely will be the position 2. Remember that it is 0 indexed.
    ```shell
    home.ibcport
 
-   port = history[4][0]
+   port = history[5][<position>]
    ```
 
 4. Create a connection handler
@@ -479,30 +504,41 @@ The process involves several steps:
 
 7. Build message structure
 
-   (ToDO: not working properly, meaning of typeUrl: '/cosmos.bank.v1beta1.MsgSend')
+   Run the following script, the string returned on the console will be used in the next step.
+   ToDo: (update this step to be executed on the REPL)
 
-   ```shell
-   rawMsg = {
-         amount: [{ denom: 'uatom', amount: '450000' }],
-         fromAddress: 'cosmos1sdk5kxmjej8yqtcp29murh0xxjl90j7h34s6te',
-         toAddress: 'cosmos14y0mj9j2l982dkkl8j9xws9v5vs35u8utj8386',
+   ```js
+   import '@agoric/zoe/exported.js';
+   import { MsgSend } from 'cosmjs-types/cosmos/bank/v1beta1/tx.js';
+   import { encodeBase64 } from '@endo/base64';
+
+   const encodeRawMsg = async () => {
+   const rawMsg = {
+      amount: [{ denom: 'uatom', amount: '450000' }],
+      fromAddress: 'cosmos1sdk5kxmjej8yqtcp29murh0xxjl90j7h34s6te',
+      toAddress: 'cosmos14y0mj9j2l982dkkl8j9xws9v5vs35u8utj8386',
    };
+   const msgType = MsgSend.fromPartial(rawMsg);
 
-   msgType = MsgSend.fromPartial(rawMsg);
+   const msgBytes = MsgSend.encode(msgType).finish();
 
-   msgBytes = MsgSend.encode(msgType).finish();
+   const bytesBase64 = encodeBase64(msgBytes);
 
-   bytesBase64 = encodeBase64(msgBytes);
+   console.log(bytesBase64);
+   };
+   export default encodeRawMsg;
    ```
 
 8. Send a new packet through the connection previously created
+
+   Replace the bytesBase64 with the string returned by the script
 
    ```shell
    E(publicFacet).sendICATxPacket(
       [
       {
          typeUrl: '/cosmos.bank.v1beta1.MsgSend',
-         data: bytesBase64,
+         data: <'bytesBase64'>,
       },
       ],
       connection,
@@ -544,10 +580,6 @@ The process involves several steps:
 
 - https://github.com/cosmos/ibc/blob/main/spec/app/ics-027-interchain-accounts/README.md
 
-### ICA implementations
-
-- https://github.com/srdtrk/cw-ica-controller/tree/main
-- https://github.com/cosmos/interchain-accounts-demo
 
 ### Cosmos testnet
 
