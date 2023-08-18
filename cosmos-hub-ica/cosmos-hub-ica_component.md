@@ -193,7 +193,7 @@ In this scenario, a connection was previously created using the createICAAccount
 ## Usage and Integration
 
 To help you effectively utilize and integrate the Cosmos Hub ICA component into your projects, we offer a comprehensive guide that walks you through the necessary steps for setting up the testing environment and running a demonstration scenario. This guide will enable you to better understand the code's functionality and make the necessary configurations, so you can seamlessly integrate it into your existing applications.  
-[Cosmos Hub ICA Demo]( todo )
+[Cosmos Hub ICA Demo](https://github.com/Jorge-Lopes/agoric-components/blob/main/cosmos-hub-ica/cosmos-hub-ica_demo.md)
 
 ## Link
 
