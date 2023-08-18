@@ -92,10 +92,10 @@ The process involves several steps:
 
 ## Agoric-sdk configuration
 
-   1. Update the keeper.go and expected_keepers.go files on the agoric-sdk repository
+   1. Update the ibc.go, keeper.go and expected_keepers.go files on the agoric-sdk repository
 
    Currently, there is an issue when trying to create a new connection to a remote Port, one of the necessary actions on  **Deploy contract and execute ICA transactions** section.  
-   It is expected that this issue will be fixed, but in the meanwhile you need to follow [this instructions](https://github.com/Agoric/agoric-sdk/pull/8127) and make the suggested updates on the files changed to the agoric-sdk, more specifically to the golang/cosmos/x/vibc/keeper/keeper.go and golang/cosmos/x/vibc/types/expected_keepers.go.
+   It is expected that this issue will be fixed, but in the meanwhile you need to follow [this instructions](https://github.com/Agoric/agoric-sdk/pull/8127) and make the suggested updates on the files changed to the agoric-sdk, more specifically to the ibc.go, /keeper/keeper.go and /types/expected_keepers.go of the golang/cosmos/x/vibc/ directory.
 
 ## Prepare Agoric Chain
 
@@ -479,7 +479,7 @@ The process involves several steps:
    ```shell
    home.ibcport
 
-   port = history[5][<position>]
+   port = history[4][<position>]
    ```
 
 4. Create a connection handler
@@ -531,14 +531,14 @@ The process involves several steps:
 
 8. Send a new packet through the connection previously created
 
-   Replace the bytesBase64 with the string returned by the script
+   Replace the `<bytesBase64>` with the string returned by the script
 
    ```shell
    E(publicFacet).sendICATxPacket(
       [
       {
          typeUrl: '/cosmos.bank.v1beta1.MsgSend',
-         data: <'bytesBase64'>,
+         data: '<bytesBase64>',
       },
       ],
       connection,
