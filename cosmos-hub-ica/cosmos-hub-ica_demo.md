@@ -400,41 +400,41 @@ The process involves several steps:
       hostConnectionId,
    );
 
-  const remoteAddr = await E(connection).getRemoteAddress();
-  console.log('Connection opened:', remoteAddr);
+   const remoteAddr = await E(connection).getRemoteAddress();
+   console.log('Connection opened:', remoteAddr);
 
-  const start = remoteAddr.indexOf('{');
-  const end = remoteAddr.lastIndexOf('}') + 1;
-  const versionJson = remoteAddr.substring(start, end);
-  const { address: controlledAddress } = JSON.parse(versionJson);
-  console.log('remote controlled address', controlledAddress);
+   const start = remoteAddr.indexOf('{');
+   const end = remoteAddr.lastIndexOf('}') + 1;
+   const versionJson = remoteAddr.substring(start, end);
+   const { address: controlledAddress } = JSON.parse(versionJson);
+   console.log('remote controlled address', controlledAddress);
 
-   const rawMsg = {
-      amount: [{ denom: 'uatom', amount: '450000' }],
-      fromAddress: controlledAddress,
-      toAddress: '<toAddress>',
-   };
-   const msgType = MsgSend.fromPartial(rawMsg);
+      const rawMsg = {
+         amount: [{ denom: 'uatom', amount: '450000' }],
+         fromAddress: controlledAddress,
+         toAddress: '<toAddress>',
+      };
+      const msgType = MsgSend.fromPartial(rawMsg);
 
-   const msgBytes = MsgSend.encode(msgType).finish();
+      const msgBytes = MsgSend.encode(msgType).finish();
 
-   const bytesBase64 = encodeBase64(msgBytes);
+      const bytesBase64 = encodeBase64(msgBytes);
 
-   const akn = await E(publicFacet).sendICATxPacket(
-      [
-         {
-         typeUrl: '/cosmos.bank.v1beta1.MsgSend',
-         data: bytesBase64,
-         },
-      ],
-      connection,
-   );
+      const akn = await E(publicFacet).sendICATxPacket(
+         [
+            {
+            typeUrl: '/cosmos.bank.v1beta1.MsgSend',
+            data: bytesBase64,
+            },
+         ],
+         connection,
+      );
 
-   console.log(akn);
+      console.log(akn);
 
-   console.log('Transaction concluded');
-   };
-   export default createICAAccountAndExecuteTransaction;
+      console.log('Transaction concluded');
+      };
+      export default createICAAccountAndExecuteTransaction;
    ```
 
 2. Update package.json
