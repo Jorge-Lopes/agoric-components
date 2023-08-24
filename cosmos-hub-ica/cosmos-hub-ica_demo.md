@@ -189,9 +189,9 @@ The process involves several steps:
 
    <mark>Important:</mark> write this mnemonic phrase in a safe place.
 
-3. Verify if the account was successfully created (optional)
+3. Verify if the account was successfully created
 
-   Note: When you query an account balance with zero tokens, you will get this error: No account with address <account_cosmos> was found in the state. This can also happen if you fund the account before your node has fully synced with the chain. These are both normal.
+   Note: When you query an account balance with zero tokens, you will get this error: No account with that address was found in the state. This can also happen if you fund the account before your node has fully synced with the chain. These are both normal.
 
    You can request atom from the [Cosmos Faucet](https://discord.com/channels/669268347736686612/953697793476821092).
 
@@ -228,10 +228,10 @@ The process involves several steps:
    gaiad keys show cosmoswallet --output json > $HOME/.hermes/cosmoswallet_key_seed.json
    ```
 
-   Note: add your mnemonic phrase in the command below.
+   Note: replace the `<mnemonic phrase>` in the command below with your mnemonic phrase returned on step 2.
 
    ```shell
-   jq --arg mnemonic "<mnemonic phrase>"  '. + {mnemonic: $mnemonic}'  $HOME/.hermes/cosmoswallet_key_seed.json > $HOME/.hermes/cosmoswallet_tmp.json && cat $HOME/.hermes/cosmoswallet_tmp.json > $HOME/.hermes/cosmoswallet_key_seed.json && rm $HOME/.hermes/cosmoswallet_tmp.json
+   jq --arg mnemonic '<mnemonic phrase>'  '. + {mnemonic: $mnemonic}'  $HOME/.hermes/cosmoswallet_key_seed.json > $HOME/.hermes/cosmoswallet_tmp.json && cat $HOME/.hermes/cosmoswallet_tmp.json > $HOME/.hermes/cosmoswallet_key_seed.json && rm $HOME/.hermes/cosmoswallet_tmp.json
 
    jq . $HOME/.hermes/cosmoswallet_key_seed.json
    ```
@@ -253,12 +253,6 @@ The process involves several steps:
    ```shell
    cd ~
    hermes keys add --chain theta-testnet-001 --key-file .hermes/cosmoswallet_key_seed.json --overwrite
-   ```
-
-6. Create a new Cosmos account that will receive atom from the previously created account
-
-   ```shell
-   gaiad keys add receivercosmoswallet
    ```
 
 ## Start Hermes
@@ -341,7 +335,7 @@ The process involves several steps:
 
    ```shell
    cd ~/interaccounts/contract
-   agoric deploy ./deploy.js
+   agoric deploy deploy.js
    ```
 
 2. Choose how you wish to deploy and interact with the contract
@@ -349,13 +343,14 @@ The process involves several steps:
    - Follow the approach `A` if you wish to use deploy scripts;
    - Follow the approach `B` if you wish to use agoric REPL;
 
-   Note: on both approaches you need to update `rawMsg fromAddress` with the `cosmoswallet` address and the `rawMsg toAddress` with the `receivercosmoswallet` address. As well as the `controllerConnectionId` and `hostConnectionId`.
-
 ### Script (approach A)
 
-1. Copy this deploy script to the interaccounts project
+1. Run the following script.
 
-   Create a new deploy script in a directory of your preference (e.g. /interaccounts/contract/deploy/) and paste the following code.
+   Create a new script in a directory of your preference (e.g. /interaccounts/contract/deploy/) and paste the following code.  
+
+   Note: replace the `<controllerConnectionId>` with the agoric connection ID and the `<hostConnectionId>` with cosmos connection ID retrieved in the first step of the `Start Hermes` section. Replace as well the `<toAddress>` with a cosmos address that you wish to send the atom to.  
+
 
    ```js
    import '@agoric/zoe/exported.js';
@@ -364,7 +359,7 @@ The process involves several steps:
    import { encodeBase64 } from '@endo/base64';
    import installationConstants from '../ui/public/conf/installationConstants.js';
 
-   const createICASendPacket = async (homePromise) => {
+   const createICAAccountAndExecuteTransaction = async (homePromise) => {
    const home = await homePromise;
    const { board, zoe, ibcport } = home;
 
@@ -380,7 +375,8 @@ The process involves several steps:
    const port = portArray[2];
 
    const address = await E(port).getLocalAddress();
-   assert(address, '/ibc-port/icacontroller-1', 'Invalid listening port')
+   assert(address, '/ibc-port/icacontroller-1', 'Invalid listening port');
+   console.log('IBC port successfully found');
 
    const connectionHandler = Far('handler', {
       infoMessage: (...args) => {
@@ -394,8 +390,8 @@ The process involves several steps:
       },
    });
 
-   const controllerConnectionId = 'connection-0';
-   const hostConnectionId = 'connection-2563';
+   const controllerConnectionId = '<controllerConnectionId>';
+   const hostConnectionId = '<hostConnectionId>';
 
    const connection = await E(publicFacet).createICAAccount(
       port,
@@ -404,12 +400,19 @@ The process involves several steps:
       hostConnectionId,
    );
 
-   console.log('Connection opened');
+  const remoteAddr = await E(connection).getRemoteAddress();
+  console.log('Connection opened:', remoteAddr);
+
+  const start = remoteAddr.indexOf('{');
+  const end = remoteAddr.lastIndexOf('}') + 1;
+  const versionJson = remoteAddr.substring(start, end);
+  const { address: controlledAddress } = JSON.parse(versionJson);
+  console.log('remote controlled address', controlledAddress);
 
    const rawMsg = {
       amount: [{ denom: 'uatom', amount: '450000' }],
-      fromAddress: 'cosmos1sdk5kxmjej8yqtcp29murh0xxjl90j7h34s6te',
-      toAddress: 'cosmos14y0mj9j2l982dkkl8j9xws9v5vs35u8utj8386',
+      fromAddress: controlledAddress,
+      toAddress: '<toAddress>',
    };
    const msgType = MsgSend.fromPartial(rawMsg);
 
@@ -431,8 +434,7 @@ The process involves several steps:
 
    console.log('Transaction concluded');
    };
-   export default createICASendPacket;
-
+   export default createICAAccountAndExecuteTransaction;
    ```
 
 2. Update package.json
@@ -502,10 +504,32 @@ The process involves several steps:
    connection = E(publicFacet).createICAAccount(port, connectionHandler, controllerConnectionId, hostConnectionId)
    ```
 
-7. Build message structure
+   When the promise is resolved, an 'opened' message should be returned on REPL. Now run the following command on REPL which will print the connection remote address You should also be able to see on the agoric chain terminal a similar message.
 
-   Run the following script, the string returned on the console will be used in the next step.
-   ToDo: (update this step to be executed on the REPL)
+   ```shell
+   E(connection).getRemoteAddress()
+   ```
+
+   It should return the following
+
+   ```
+   "/ibc-hop/connection-0/ibc-port/icahost/ordered/{\"version\":\"ics27-1\",\"controller_connection_id\":\"connection-0\",\"host_connection_id\":\"connection-2563\",\"address\":\"cosmos13tx86qk672ezn7xte5ue7k9pnz5fqjshlgnr5le5x2789jz7r7zqlqpmat\",\"encoding\":\"proto3\",\"tx_type\":\"sdk_multi_msg\"}/ibc-channel/channel-3098"
+   ```
+   
+
+   <mark>Important:</mark> the address printed on the message above correspond to the newly created interchain account hosted on Cosmos chain. It will be used in the next steps, declared as `fromAddress`.
+
+
+7. Send atom to the interchain account
+
+   In order to execute a transaction through the interchain account, you will need to provide it with some atom first.
+   For this purpose you can use the same [Cosmos Faucet](https://discord.com/channels/669268347736686612/953697793476821092) as before.
+
+8. Build message structure
+
+   Run the following script, which will encode the rawMsg object using Protocol Buffers and then converting it to a base64-encoded format. 
+
+   Note: replace the `<fromAddress>` with the one retrieved on the previous step and `<toAddress>` with a different cosmos address that you wish to send the atom to. The string returned on the console will be used in the next step.  
 
    ```js
    import '@agoric/zoe/exported.js';
@@ -515,8 +539,8 @@ The process involves several steps:
    const encodeRawMsg = async () => {
    const rawMsg = {
       amount: [{ denom: 'uatom', amount: '450000' }],
-      fromAddress: 'cosmos1sdk5kxmjej8yqtcp29murh0xxjl90j7h34s6te',
-      toAddress: 'cosmos14y0mj9j2l982dkkl8j9xws9v5vs35u8utj8386',
+      fromAddress: '<fromAddress>',
+      toAddress: '<toAddress>',
    };
    const msgType = MsgSend.fromPartial(rawMsg);
 
@@ -529,7 +553,9 @@ The process involves several steps:
    export default encodeRawMsg;
    ```
 
-8. Send a new packet through the connection previously created
+   ToDo: (update this step to be executed on the REPL)
+   
+9. Send a new packet through the connection previously created
 
    Replace the `<bytesBase64>` with the string returned by the script
 
@@ -545,20 +571,26 @@ The process involves several steps:
    )
    ```
 
+   When the promise is resolved, it should return the following acknowledgement
+
+   ```
+   "{\"result\":\"Ch4KHC9jb3Ntb3MuYmFuay52MWJldGExLk1zZ1NlbmQ=\"}"
+   ```
+
+   Also, you should be able to see on the agoric chain terminal a similar message to this on the logs:
+
+   ```
+   SwingSet: vat: v16: IBC fromBridge { acknowledgement: 'eyJyZXN1bHQiOiJDaDRLSEM5amIzTnRiM011WW1GdWF5NTJNV0psZEdFeExrMXpaMU5sYm1RPSJ9', blockHeight: 517, blockTime: 1692632702, event: 'acknowledgementPacket', packet: { data: 'eyJ0eXBlIjoxLCJkYXRhIjoiQ3FRQkNod3ZZMjl6Ylc5ekxtSmhibXN1ZGpGaVpYUmhNUzVOYzJkVFpXNWtFb01CQ2tGamIzTnRiM014YkhsbGN6TjVNbU4xZGpWb2NqVmpOR05yWldRM2NUZHFaamh1YlhGcWRHWXpiVzVzYTJ0MWR6UTBjM1JsY21jeWVIUm1jMnMwZURjeWR4SXRZMjl6Ylc5ek1USjNibk56YldZNWEyNDVjbkF5WmpNellYSTROMlJ4ZWpabE5IVnJkbVJ3Ym5ZemVEZGtHZzhLQlhWaGRHOXRFZ1kwTlRBd01EQT0iLCJtZW1vIjoiIn0=', destination_channel: 'channel-3075', destination_port: 'icahost', sequence: 1, source_channel: 'channel-0', source_port: 'icacontroller-1', timeout_height: {}, timeout_timestamp: 1692633281756360000 }, type: 'IBC_EVENT' }
+   ```
+
 ## See transaction result
 
 1. See transaction in the block explorer
 
-   Go to the [Cosmos testnet explorer](https://explorer.theta-testnet.polypore.xyz/) and search for your Cosmos account address
-   See the transactions made to establish the ICA connection and assets being moved
+   Go to the [Cosmos testnet explorer](https://explorer.theta-testnet.polypore.xyz/) and search for both Cosmos addresses used as sender and receiver and see the atom being moved, you can also use gaiad to query their balances.
 
-2. See balance update
+   Also, you can use the explorer and search for the cosmos address provided to the Hermes relayer on `Prepare Cosmos chain` section and see the transactions made to establish the ICA connection.
 
-   Use Gaiad to query both sender and receiver account balances.
-
-   ```shell
-   gaiad q bank balances <address> --node http://104.245.147.200:26657
-   ```
 
 ## Relevant links
 
